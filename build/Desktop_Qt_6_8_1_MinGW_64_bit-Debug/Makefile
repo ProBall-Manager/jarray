@@ -303,12 +303,14 @@ Makefile: ../../last.pro C:/qt/6.8.1/mingw_64/mkspecs/win32-g++/qmake.conf C:/qt
 		C:/qt/6.8.1/mingw_64/mkspecs/features/yacc.prf \
 		C:/qt/6.8.1/mingw_64/mkspecs/features/lex.prf \
 		../../last.pro \
+		C:/qt/6.8.1/mingw_64/lib/Qt6PrintSupport.prl \
 		C:/qt/6.8.1/mingw_64/lib/Qt6Widgets.prl \
 		C:/qt/6.8.1/mingw_64/lib/Qt6Gui.prl \
 		C:/qt/6.8.1/mingw_64/lib/Qt6Sql.prl \
 		C:/qt/6.8.1/mingw_64/lib/Qt6Core.prl \
 		C:/qt/6.8.1/mingw_64/lib/Qt6EntryPoint.prl \
-		C:/qt/6.8.1/mingw_64/mkspecs/features/build_pass.prf
+		C:/qt/6.8.1/mingw_64/mkspecs/features/build_pass.prf \
+		../../img.qrc
 	$(QMAKE) -o Makefile ..\..\last.pro -spec win32-g++ "CONFIG+=debug" "CONFIG+=qml_debug"
 C:/qt/6.8.1/mingw_64/mkspecs/features/spec_pre.prf:
 C:/qt/6.8.1/mingw_64/mkspecs/features/device_config.prf:
@@ -543,12 +545,14 @@ C:/qt/6.8.1/mingw_64/mkspecs/features/exceptions.prf:
 C:/qt/6.8.1/mingw_64/mkspecs/features/yacc.prf:
 C:/qt/6.8.1/mingw_64/mkspecs/features/lex.prf:
 ../../last.pro:
+C:/qt/6.8.1/mingw_64/lib/Qt6PrintSupport.prl:
 C:/qt/6.8.1/mingw_64/lib/Qt6Widgets.prl:
 C:/qt/6.8.1/mingw_64/lib/Qt6Gui.prl:
 C:/qt/6.8.1/mingw_64/lib/Qt6Sql.prl:
 C:/qt/6.8.1/mingw_64/lib/Qt6Core.prl:
 C:/qt/6.8.1/mingw_64/lib/Qt6EntryPoint.prl:
 C:/qt/6.8.1/mingw_64/mkspecs/features/build_pass.prf:
+../../img.qrc:
 qmake: FORCE
 	@$(QMAKE) -o Makefile ..\..\last.pro -spec win32-g++ "CONFIG+=debug" "CONFIG+=qml_debug"
 
