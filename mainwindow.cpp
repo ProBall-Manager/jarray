@@ -637,12 +637,13 @@ void MainWindow::movePlayersRealistically()
         }
 
         // If player should chase ball and ball is in their zone
-        if (shouldChaseBall && ((teamAHasPossession && playerPos.x() < ballPos.x()) ||
-                                (!teamAHasPossession && playerPos.x() < 350))) {
+        // For Team A - remove the zone restriction
+        if (shouldChaseBall) {
             targetPos = ballPos + QPointF(QRandomGenerator::global()->bounded(-20, 20),
                                           QRandomGenerator::global()->bounded(-20, 20));
         }
 
+        // Same for Team B
         // Calculate separation from other players
         QPointF separation(0, 0);
         for (auto otherPlayer : teamAPlayers + teamBPlayers) {
@@ -678,7 +679,8 @@ void MainWindow::movePlayersRealistically()
         QPointF newPos = playerPos + QPointF(dx, dy);
 
         // Keep players within bounds
-        newPos.setX(qBound(20.0, newPos.x(), 350.0));
+        newPos.setX(qBound(20.0, newPos.x(), 600.0)); // Allow Team A to go into Team B's half
+
         newPos.setY(qBound(20.0, newPos.y(), 430.0));
 
         player->setPos(newPos);
@@ -735,12 +737,13 @@ void MainWindow::movePlayersRealistically()
         }
 
         // If player should chase ball and ball is in their zone
-        if (shouldChaseBall && ((!teamAHasPossession && playerPos.x() > ballPos.x()) ||
-                                (teamAHasPossession && playerPos.x() > 350))) {
+        // For Team A - remove the zone restriction
+        if (shouldChaseBall) {
             targetPos = ballPos + QPointF(QRandomGenerator::global()->bounded(-20, 20),
                                           QRandomGenerator::global()->bounded(-20, 20));
         }
 
+        // Same for Team B
         // Calculate separation from other players
         QPointF separation(0, 0);
         for (auto otherPlayer : teamAPlayers + teamBPlayers) {
@@ -776,7 +779,7 @@ void MainWindow::movePlayersRealistically()
         QPointF newPos = playerPos + QPointF(dx, dy);
 
         // Keep players within bounds
-        newPos.setX(qBound(350.0, newPos.x(), 660.0));
+        newPos.setX(qBound(80.0, newPos.x(), 660.0)); // Allow Team B to go into Team A's half
         newPos.setY(qBound(20.0, newPos.y(), 430.0));
 
         player->setPos(newPos);
