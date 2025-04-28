@@ -196,7 +196,7 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 8: _t->exportToPdf(); break;
         case 9: _t->calculateAttendanceStats(); break;
         case 10: _t->showAttendanceStatsDialog(); break;
-        case 11: _t->exportHologramStatsToPdf((*reinterpret_cast< std::add_pointer_t<QGraphicsScene*>>(_a[1]))); break;
+        case 11: _t->exportStatsTableToPdf((*reinterpret_cast< std::add_pointer_t<QTableWidget*>>(_a[1]))); break;
         case 12: _t->on_pushButton_MatchStats_clicked(); break;
         case 13: _t->filterByTypeMatch(); break;
         case 14: _t->on_pushButton_Calendar_clicked(); break;

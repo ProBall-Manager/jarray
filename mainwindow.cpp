@@ -25,21 +25,125 @@
 #include <QGraphicsSceneHoverEvent>
 #include "hologrambar.h"
 
+#include <QSerialPort>
+#include <QSerialPortInfo>
 
 
 
+// Add these implementations to your mainwindow.cpp file
+void MainWindow::setupArduinoConnection()
+{
+    arduino = new QSerialPort(this);
+
+    // List all available ports for debugging
+    qDebug() << "Available serial ports:";
+    const auto infos = QSerialPortInfo::availablePorts();
+    for (const QSerialPortInfo &info : infos) {
+        qDebug() << "Port:" << info.portName()
+        << "Description:" << info.description()
+        << "Manufacturer:" << info.manufacturer();
+    }
+
+    // Try to find Arduino
+    bool arduinoFound = false;
+    for (const QSerialPortInfo &info : infos) {
+        // Look for Arduino with broader criteria
+        if (info.description().contains("Arduino", Qt::CaseInsensitive) ||
+            info.manufacturer().contains("Arduino", Qt::CaseInsensitive) ||
+            info.description().contains("CH340", Qt::CaseInsensitive) ||  // Common Arduino clone chip
+            info.description().contains("USB Serial", Qt::CaseInsensitive)) {  // Generic descriptor often used
+
+            arduino->setPort(info);
+            arduinoFound = true;
+            qDebug() << "Found potential Arduino:" << info.portName();
+            break;
+        }
+    }
+
+    if (!arduinoFound) {
+        qDebug() << "Arduino not found automatically. Please select port manually.";
+        // You could add UI here to let user select from available ports
+
+        // For now, use the first available port as fallback if any exist
+        if (!infos.isEmpty()) {
+            arduino->setPort(infos.first());
+            qDebug() << "Using first available port as fallback:" << infos.first().portName();
+        } else {
+            qDebug() << "No serial ports available!";
+            return;
+        }
+    }
+
+    // Configure the serial port
+    arduino->setBaudRate(QSerialPort::Baud9600);
+    arduino->setDataBits(QSerialPort::Data8);
+    arduino->setParity(QSerialPort::NoParity);
+    arduino->setStopBits(QSerialPort::OneStop);
+    arduino->setFlowControl(QSerialPort::NoFlowControl);
+
+    // Open the serial port for read and write (not just write only)
+    if (!arduino->open(QIODevice::ReadWrite)) {
+        qDebug() << "Failed to open Arduino serial port! Error:" << arduino->errorString();
+    } else {
+        qDebug() << "Connected to Arduino on" << arduino->portName();
+    }
+}
+
+void MainWindow::sendStadiumCapacityToArduino(int spectatorCount)
+{
+    if (!arduino) {
+        qDebug() << "Arduino object not created!";
+        return;
+    }
+
+    if (!arduino->isOpen()) {
+        qDebug() << "Arduino is not connected! Attempting to reconnect...";
+        if (!arduino->open(QIODevice::ReadWrite)) {
+            qDebug() << "Failed to reconnect to Arduino:" << arduino->errorString();
+            return;
+        }
+    }
+
+    // Send capacity command to Arduino
+    // Format: C{capacity}\n
+    QString command = QString("C%1\n").arg(spectatorCount);
+    qint64 bytesWritten = arduino->write(command.toUtf8());
+
+    if (bytesWritten == -1) {
+        qDebug() << "Failed to send data to Arduino:" << arduino->errorString();
+    } else if (bytesWritten != command.length()) {
+        qDebug() << "Warning: Not all data was sent to Arduino!";
+    } else {
+        qDebug() << "Sent stadium capacity to Arduino:" << spectatorCount << "spectators";
+    }
+
+    // Make sure data is sent immediately
+    arduino->flush();
+}
+void MainWindow::resetStadiumBarrier()
+{
+    if (!arduino || !arduino->isOpen()) {
+        qDebug() << "Arduino is not connected!";
+        return;
+    }
+
+    // Send reset command to Arduino
+    arduino->write("R\n");
+    qDebug() << "Reset stadium barrier";
+}
+
+// Modify your MainWindow constructor:
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     currentId(-1),
-    calendar(nullptr)
+    calendar(nullptr),
+    arduino(nullptr)  // Initialize arduino pointer
 {
     ui->setupUi(this);
-
     // Create a connection object
     connection = new Connection();
     connect(ui->lineEdit_SearchTypeMatch, &QLineEdit::textChanged, this, &MainWindow::filterByTypeMatch);
-
 
     // Initialize the database connection
     if (!connection->createconnect()) {
@@ -50,7 +154,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // Set up the model for the table view
     model = new QSqlTableModel(this, connection->getConnection());
     model->setTable("MATCHES"); // Use your MATCHES table
-
     // Set edit strategy
     model->setEditStrategy(QSqlTableModel::OnManualSubmit);
 
@@ -91,20 +194,35 @@ MainWindow::MainWindow(QWidget *parent) :
     // Connect Calendar button
     connect(ui->pushButton_Calendar, &QPushButton::clicked, this, &MainWindow::on_pushButton_Calendar_clicked);
 
-    // We don't load data automatically - user will click Read button instead
+    // Setup Arduino connection
+    setupArduinoConnection();
+
+    // Add a reset button to the UI for the Arduino barrier
+    QPushButton *resetButton = new QPushButton("Reset Stadium Barrier", this);
+    ui->statusbar->addPermanentWidget(resetButton);
+    connect(resetButton, &QPushButton::clicked, this, &MainWindow::resetStadiumBarrier);
 }
 
+// Add this to your destructor
 MainWindow::~MainWindow()
 {
     if (calendar) {
         delete calendar;
     }
+
+    // Close and delete Arduino connection
+    if (arduino) {
+        if (arduino->isOpen()) {
+            arduino->close();
+        }
+        delete arduino;
+    }
+
     delete proxyModel;
     delete model;
     delete connection;
     delete ui;
 }
-
 
 void MainWindow::refreshTable()
 {
@@ -1113,7 +1231,6 @@ void MainWindow::on_tableView_clicked(const QModelIndex &index)
     if (!index.isValid()) {
         return;
     }
-
     // Map from proxy model index to source model index
     QModelIndex sourceIndex = proxyModel->mapToSource(index);
 
@@ -1130,14 +1247,16 @@ void MainWindow::on_tableView_clicked(const QModelIndex &index)
     QDateTime dateTime = record.value("DATEMATCH").toDateTime();
     QString formattedDate = dateTime.toString("yyyy-MM-dd HH:mm");
     ui->lineEdit_Column1->setText(formattedDate);
-
     ui->lineEdit_Column2->setText(record.value("LIEU").toString());
     ui->lineEdit_Column3->setText(record.value("STATUS").toString());
     ui->lineEdit_Score->setText(record.value("SCORE").toString());
     ui->lineEdit_TypeMatch->setText(record.value("TYPEMATCH").toString());
     ui->lineEdit_Spectateurs->setText(record.value("SPECTATEURS").toString());
-}
 
+    // Get the spectator count and send it to Arduino
+    int spectatorCount = record.value("SPECTATEURS").toInt();
+    sendStadiumCapacityToArduino(spectatorCount);
+}
 void MainWindow::clearInputFields()
 {
     ui->lineEdit_ID_2->clear();

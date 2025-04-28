@@ -22,6 +22,10 @@
 #include <QGraphicsDropShadowEffect>
 #include <QPrinter>
 #include <QPainter>
+
+#include <QSerialPort>
+#include <QSerialPortInfo>
+
 #include "hologrambar.h" // Include the separate hologrambar header
 
 #include "connection.h" // Make sure this header exists and contains your Connection class
@@ -67,6 +71,9 @@ private slots:
     // Simulation slots
     void on_pushButton_Simulate_clicked();
     void updateSimulation();
+
+
+
 
 private:
     Ui::MainWindow *ui;
@@ -118,6 +125,11 @@ private:
     void initializePlayersInFormation();
     void setupGame();
     void exportHologramStatsToPdf(QGraphicsScene *scene);
+
+    QSerialPort *arduino;
+    void setupArduinoConnection();
+    void sendStadiumCapacityToArduino(int spectatorCount);
+    void resetStadiumBarrier();
 };
 
 #endif // MAINWINDOW_H
